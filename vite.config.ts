@@ -7,6 +7,12 @@ const agentNativePlugins = agentNative as unknown as (
   options?: Parameters<typeof agentNative>[0],
 ) => any[];
 export default defineConfig({
+  server: {
+    port: 5173,
+  },
+  build: {
+    sourcemap: false,
+  },
   optimizeDeps: {
     entries: [
       "app/entry.client.tsx",
