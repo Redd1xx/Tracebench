@@ -18,13 +18,18 @@ export interface NavigationState {
   path?: string;
   publicPath?: string;
   threadId?: string;
+  graphId?: string;
+  selectedNodeId?: string;
+  activeFrameIndex?: number;
+  openGateId?: string;
 }
 
 export function useNavigationState() {
   useAgentRouteState<NavigationState>({
     browserTabId: TAB_ID,
     requestSource: TAB_ID,
-    getNavigationState: ({ pathname }) => navigationStateForPath(pathname),
+    getNavigationState: ({ pathname, searchParams }) =>
+      navigationStateForPath(pathname, searchParams),
     getCommandPath: commandPathForNavigation,
   });
 }
@@ -62,17 +67,31 @@ function matchesPathPrefix(pathname: string, prefix: string): boolean {
   return pathname === prefix || pathname.startsWith(`${prefix}/`);
 }
 
-export function navigationStateForPath(pathname: string): NavigationState {
+export function navigationStateForPath(
+  pathname: string,
+  searchParams?: URLSearchParams,
+): NavigationState {
   const threadId = threadIdFromPath(pathname);
+  const graphId = pathname.match(/^\/bench\/([^/]+)/)?.[1];
+  const node = searchParams?.get("node");
+  const frame = searchParams?.get("frame");
+  const gate = searchParams?.get("gate");
   return {
-    view: viewForPath(pathname),
+    view: graphId ? "graph" : viewForPath(pathname),
     path: pathname,
     publicPath: appPathFromLocalRoute(pathname),
     ...(threadId ? { threadId } : {}),
+    ...(graphId ? { graphId: decodeURIComponent(graphId) } : {}),
+    ...(graphId && node ? { selectedNodeId: node } : {}),
+    ...(graphId && frame !== null && frame !== undefined && /^\d+$/.test(frame)
+      ? { activeFrameIndex: Number(frame) }
+      : {}),
+    ...(graphId && gate ? { openGateId: gate } : {}),
   };
 }
 
 function viewForPath(pathname: string): string {
+  if (pathname.startsWith("/bench")) return "bench";
   if (isChatPathname(pathname)) return "chat";
   if (pathname === HOME_PATH) return "home";
   if (pathname.startsWith("/database")) return "database";
@@ -93,6 +112,8 @@ function pathForView(view?: string): string {
       return NEW_CHAT_PATH;
     case "home":
       return HOME_PATH;
+    case "bench":
+      return "/bench";
     case "database":
       return "/database";
     case "extensions":
