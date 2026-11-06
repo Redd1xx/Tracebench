@@ -1,3 +1,4 @@
+import { useActionQuery } from "@agent-native/core/client/hooks";
 import { appPath } from "@agent-native/core/client/api-path";
 import { useT } from "@agent-native/core/client/i18n";
 import {
@@ -12,10 +13,9 @@ import {
 } from "@agent-native/toolkit/app/chat/ownership-history";
 import { OrgSwitcher } from "@agent-native/toolkit/app/org";
 import { openCommandMenu } from "@agent-native/toolkit/app/shared";
-import { AgentNativeIcon } from "@agent-native/toolkit/app/shared/AgentNativeIcon";
 import {
+  IconCircuitGround,
   IconEdit,
-  IconHome,
   IconLayoutSidebarLeftCollapse,
   IconLayoutSidebarLeftExpand,
   IconLoader2,
@@ -31,6 +31,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { APP_TITLE } from "@/lib/app-config";
+import { ScopeEmblem, ScopeTitle } from "@/modules/shell/ScopeEmblem";
 import { chatThreadPath, HOME_PATH, threadIdFromPath } from "@/lib/chat-paths";
 import { cn } from "@/lib/utils";
 
@@ -117,15 +118,14 @@ function persistActiveThreadId(threadId: string) {
   } catch {}
 }
 
-function HomeNavLink({ collapsed }: { collapsed: boolean }) {
-  const t = useT();
+function BenchNavLink({ collapsed }: { collapsed: boolean }): React.ReactElement {
   const location = useLocation();
-  const active = location.pathname === HOME_PATH;
+  const active = location.pathname.startsWith("/bench");
   const link = (
     <Link
-      to={HOME_PATH}
+      to="/bench"
       aria-current={active ? "page" : undefined}
-      aria-label={collapsed ? t("navigation.home") : undefined}
+      aria-label={collapsed ? "Incident benches" : undefined}
       className={cn(
         "flex items-center text-sidebar-accent-foreground transition-colors hover:bg-sidebar-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
         active && "bg-sidebar-accent",
@@ -134,23 +134,55 @@ function HomeNavLink({ collapsed }: { collapsed: boolean }) {
           : "h-8 w-full gap-3 rounded-lg px-3 text-sm font-medium",
       )}
     >
-      <IconHome className="size-4 shrink-0" strokeWidth={1.8} />
-      <span className={collapsed ? "sr-only" : "truncate"}>
-        {t("navigation.home")}
-      </span>
+      <IconCircuitGround className="size-4 shrink-0" strokeWidth={1.8} />
+      <span className={collapsed ? "sr-only" : "truncate"}>Incident benches</span>
     </Link>
   );
-
   if (collapsed) {
     return (
       <Tooltip>
         <TooltipTrigger asChild>{link}</TooltipTrigger>
-        <TooltipContent side="right">{t("navigation.home")}</TooltipContent>
+        <TooltipContent side="right">Incident benches</TooltipContent>
       </Tooltip>
     );
   }
+  return <div className="px-2 pb-1">{link}</div>;
+}
 
-  return <div className="px-2">{link}</div>;
+function BenchRoster({ collapsed }: { collapsed: boolean }): React.ReactElement | null {
+  const location = useLocation();
+  const { data } = useActionQuery("list-graphs", {});
+  if (collapsed || !data?.graphs.length) return null;
+  return (
+    <div className="px-2 pb-3 pt-2">
+      <p className="tb-readout px-3 pb-1 text-[11px] text-sidebar-foreground">LIVE BENCHES</p>
+      <ul>
+        {data.graphs.slice(0, 8).map((g) => {
+          const active = location.pathname === `/bench/${g.id}`;
+          const blast = g.blastRadiusPct ?? 0;
+          return (
+            <li key={g.id}>
+              <Link
+                to={`/bench/${g.id}`}
+                className={cn(
+                  "flex h-8 items-center gap-2 rounded-xl px-3 text-[13px] text-sidebar-accent-foreground hover:bg-sidebar-accent",
+                  active && "bg-sidebar-accent",
+                )}
+              >
+                <span
+                  aria-hidden="true"
+                  className={cn("size-1.5 shrink-0 rounded-full", blast > 0 ? "bg-[hsl(var(--tb-fault))]" : "bg-[hsl(var(--tb-trace))]")}
+                />
+                <span className="min-w-0 flex-1 truncate">{g.name}</span>
+                <span className="tb-readout text-[11px] text-sidebar-foreground">{blast}%</span>
+                {g.pendingGates ? <span className="tb-readout text-[11px] text-[hsl(var(--tb-amber))]">{g.pendingGates} GATE</span> : null}
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
 }
 
 function ChatThreadsSection({ collapsed }: { collapsed: boolean }) {
@@ -267,6 +299,11 @@ function ChatThreadsSection({ collapsed }: { collapsed: boolean }) {
     );
   }
 
+  // Keep the thread rail hidden when no incident chat history exists yet.
+  if (threads.length === 0 && localMineRows.length === 0) {
+    return <div className="px-2 pb-3">{newChatButton}</div>;
+  }
+
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="px-2 pb-3">{newChatButton}</div>
@@ -374,10 +411,7 @@ export function Sidebar({
                 aria-label={APP_TITLE}
                 className="flex size-8 items-center justify-center rounded outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
               >
-                <AgentNativeIcon
-                  aria-hidden="true"
-                  className="h-3.5 w-6 text-sidebar-accent-foreground"
-                />
+                <ScopeEmblem />
               </Link>
             </TooltipTrigger>
             <TooltipContent side="right">{APP_TITLE}</TooltipContent>
@@ -388,13 +422,8 @@ export function Sidebar({
               to="/"
               className="flex min-w-0 flex-1 items-center gap-3 rounded outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
             >
-              <AgentNativeIcon
-                aria-hidden="true"
-                className="h-3.5 w-6 shrink-0 text-sidebar-accent-foreground"
-              />
-              <span className="truncate text-sm font-semibold text-sidebar-accent-foreground">
-                {APP_TITLE}
-              </span>
+              <ScopeEmblem />
+              <ScopeTitle />
             </Link>
           </>
         )}
@@ -407,7 +436,8 @@ export function Sidebar({
           collapsed ? "items-center gap-1 px-1 py-2" : "pt-1",
         )}
       >
-        <HomeNavLink collapsed={collapsed} />
+        <BenchNavLink collapsed={collapsed} />
+        <BenchRoster collapsed={collapsed} />
         <ChatThreadsSection collapsed={collapsed} />
       </nav>
 

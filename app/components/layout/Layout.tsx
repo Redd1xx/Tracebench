@@ -44,6 +44,9 @@ interface LayoutProps {
 
 const SIDEBAR_COLLAPSE_KEY = "chat.sidebar.collapsed";
 
+// Incident bench routes render their own full-viewport schematic and top ribbon.
+const isBenchRoute = (pathname: string): boolean => /^\/bench(\/[^/]+)?\/?$/.test(pathname);
+
 function routeOwnsToolbar(pathname: string): boolean {
   return (
     pathname === HOME_PATH ||
@@ -92,6 +95,7 @@ function LayoutShell({ children }: LayoutProps) {
   // Settings brings its own navigation, header, and agent toggle, so it
   // renders full width.
   const settingsOwnsChrome = isSettingsPathname(location.pathname);
+  const hideShellChrome = isBenchRoute(location.pathname);
   const chatHomeHandoffActive = useAgentChatHomeHandoff({
     storageKey: "chat",
     activePath: location.pathname,
@@ -158,7 +162,12 @@ function LayoutShell({ children }: LayoutProps) {
           className="md:hidden"
           onOpenNavigation={openMobileSidebar}
         />
-      ) : settingsOwnsChrome ? null : (
+      ) : settingsOwnsChrome ? null : hideShellChrome ? (
+        <MobileAppBar
+          className="md:hidden"
+          onOpenNavigation={openMobileSidebar}
+        />
+      ) : (
         <Suspense fallback={<div className="h-12 shrink-0" />}>
           <Header onOpenMobileSidebar={openMobileSidebar} />
         </Suspense>
@@ -172,7 +181,7 @@ function LayoutShell({ children }: LayoutProps) {
   return (
     <HeaderActionsProvider>
       <div className="agent-layout-shell chat-layout-shell flex h-screen w-full overflow-hidden bg-background text-foreground">
-        {settingsOwnsChrome ? null : (
+        {settingsOwnsChrome || hideShellChrome ? null : (
           <div
             data-collapsed={sidebarCollapsed ? "true" : "false"}
             className="agent-layout-left-drawer hidden md:block"

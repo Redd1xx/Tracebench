@@ -38,6 +38,8 @@ export function AgentInspector({
       openOnChatRunning={chatHomeHandoffActive}
       onFullscreenRequest={openAskAgentFullscreen}
       emptyStateText={t("chat.inspectEmptyState")}
+      composerPlaceholder={t("chat.composerPlaceholder")}
+      dynamicSuggestions={false}
       agentPageHref="/settings/agent"
       suggestions={[
         t("chat.inspectSuggestionCapabilities"),

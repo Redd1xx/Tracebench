@@ -35,6 +35,8 @@ import {
 import { TAB_ID } from "@/lib/tab-id";
 
 import { i18nCatalog } from "./i18n";
+// Registers the Shielded Gate verdict card the agent chat shows for stage-patch.
+import "./modules/schematic/ShieldVerdictCard";
 
 import stylesheet from "./global.css?url";
 
@@ -94,10 +96,15 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
 function DbSyncSetup() {
   const qc = useQueryClient();
+  const { pathname } = useLocation();
   useNavigationState();
   useDbSync({
     queryClient: qc,
     ignoreSource: TAB_ID,
+    ...(pathname.startsWith("/bench/")
+      ? { realtime: { reason: "agents and operators log probes, inject faults and roll out patches on this bench while it is open" } }
+      : {}),
+    pauseWhenHidden: true,
   });
   return null;
 }

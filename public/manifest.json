@@ -1,8 +1,8 @@
 {
   "name": "TraceBench",
   "short_name": "TraceBench",
-  "description": "Workspace app for TraceBench.",
-  "start_url": "./home",
+  "description": "Schematic fault isolation with a scoped blast-radius gate.",
+  "start_url": "./bench",
   "background_color": "#111111",
   "theme_color": "#18181B",
   "icons": [
