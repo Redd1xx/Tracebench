@@ -1,6 +1,6 @@
-# Chat — Agent Guide
+# TraceBench — Agent Guide
 
-Chat is the minimal chat-first agent-native app. `/` redirects to shared sign-in, then `/home`, the editable Get started page. Chat lives at `/chat`; new chats start there. Actions carry capabilities; screens exist only for durable workflows.
+TraceBench is built on the chat-first agent-native starter. `/` redirects to shared sign-in, then `/home`, the editable Get started page. Chat lives at `/chat`; new chats start there. Actions carry capabilities; screens exist only for durable workflows.
 
 ## Skills
 
@@ -22,12 +22,14 @@ For custom branding, keep `server/plugins/agent-native-email-branding.ts` aligne
 - `navigation` describes the view and selected ids. Chat is `chat` at `/chat` and `/chat/<threadId>`; the Get started page is `home` at `/home`; `/` opens shared sign-in/signup.
 - Use `navigate` when supported and `view-screen` for a fresh read of visible details; basic navigation is already in `<current-screen>`.
 
-## Building a domain app
-
-Choose the primary workflow and route before editing. Add a domain route under `app/routes/` and set `app.homePath` in `server/plugins/agent-native-email-branding.ts` with `defineAppConfig`. The default Get started page lives at `/home`, and Chat stays at `/chat`; edit `app/routes/home.tsx` when replacing that page with a domain-specific home. Add a static link in `app/components/layout/Sidebar.tsx` before `ChatThreadsSection`; `Header.tsx` uses `APP_TITLE` elsewhere. Shared sidebar and AgentInspector remain.
-
-Use `adding-a-feature` for functional parity and `frontend-design` for a user-facing screen. Keep feature guidance here; do not rewrite `README.md` or `DESIGN.md`. After all edits, run one typecheck, one doctor check, and one browser smoke of the primary workflow, including overlap rejection, cancellation freeing the slot, and authenticated landing. Skip production build and extra test suites.
-
-Before building common workspace or agent UI, read `agent-native-toolkit`; for supported customization, read `customizing-agent-native`.
-
 - Guarded verification: run `pnpm agent-native:doctor`; fix findings before done.
+
+## TraceBench incident bench
+
+Fault isolation on service meshes and PCB power boards. `/bench` lists benches; `/bench/:graphId?node=&frame=&gate=` is the workbench. `navigation` adds `graphId`, `selectedNodeId`, `activeFrameIndex` (absent = live), `openGateId`; tab state `bench-selection` adds `upstreamPath` and `downstreamBlastRadius`.
+
+### Solver & Blast-Radius Gate Contract
+- **Dependency direction (`u → v`):** Node `u` depends on node `v`. All telemetry propagation is computed by `app/lib/solver/` (`compute-blast-radius`): iterative Tarjan SCC condensation, effective latency (`L_eff`), cascading failure probability (`P_fail`), DC rail current/voltage drop (`ΔV = I·R`, `P = I²R`, current-limit foldback), and traffic-weighted blast radius.
+- **15% Autonomous Rollout Cap:** `stage-patch` hashes the canonical patch JSON (SHA-256) and flags `requires_human_shield` whenever the computed blast radius exceeds `15%` or targets a `CRITICAL_TIER_1` node. Agents cannot self-countersign; calling `authorize-rollout` on a shielded gate from an agent/CLI/MCP/A2A caller throws `BLAST_RADIUS_CAP_EXCEEDED` (409).Patches within the 15% cap on non-tier-1 nodes can be rolled out autonomously.
+- **Immutable Timeline & Probes:** Record observations via `log-probe` (`recordedBy: "agent_probe"`), simulate faults with `inject-fault`, and scrub or restore frames with `seek-frame`.
+- **Runbooks & Browser Tools:** Check `.agents/skills/incident-runbooks/SKILL.md` (`learnedRules` in `get-graph-state`) before staging patches; `metabolize-runbook` captures operator edits into the runbook. When a bench tab is open, `window.__agentNativeWebMcp` provides `select-schematic-node` and `dry-run-patch` (in-browser solver preview without staging). For rich chat summaries, use `render-inline-extension` (affected subgraph table) or `save-data-program` (`appAction("list-graphs")`).
